@@ -226,14 +226,14 @@ class PlayerAI:
 
         # If sees enemy head, flee:
         if self._check_enemy_head(world, friendly_unit, enemy_units):
-            self.outbound = False
-            return None
+            return tuple((2, world.util.get_closest_friendly_territory_from(friendly_unit.position,
+                                                                            friendly_unit.snake).position))
         # Else if sees enemy body, attack:
-        # elif self._check_enemy_body(world, friendly_unit):
-        #     return self._check_enemy_body(world, friendly_unit)[1]
-        # # Else, move one more tile:
-        # else:
-        #     return self._get_neutral_path(world, friendly_unit)
+        elif self._check_enemy_body(world, friendly_unit) is not None:
+            return tuple((1, self._check_enemy_body(world, friendly_unit)))
+        # Else, move one more tile:
+        else:
+            return tuple((0, self._get_neutral_path(world, friendly_unit)))
 
     def _check_enemy_head(self, world, friendly_unit, enemy_units):
         """
@@ -308,3 +308,13 @@ class PlayerAI:
                 # The back up is in case there is no short enough path left.
                 delete_list.append(direction)
                 # Make sure the dictionary of possible moves does not make the snake exit the safety threshold region.
+
+        for item in delete_list:
+            del neighbours[item]
+
+        if bool(neighbours):
+            for direction in neighbours.keys():
+                return neighbours[direction]
+        else:
+            return back_up_position
+            # Return the first position that's possible.
