@@ -44,21 +44,23 @@ class PlayerAI:
         invader_target = \
             self._territory_check(world, friendly_unit, enemy_units)
 
-        next_move = \
-            self._vision_detection(world, friendly_unit, enemy_units)
+        possible_target = \
+            self._vision_decision(world, friendly_unit, enemy_units)
 
-        # # if unit reaches the target point, reverse outbound boolean and
-        # #  set target back to None
-        # if self.target is not None and friendly_unit.position == self.target.position:
-        #     self.outbound = not self.outbound
-        #     self.target = None
-        #
+        # if unit reaches the target point, reverse outbound boolean and
+        #  set target back to None
+        if self.target is not None and friendly_unit.position == self.target.position:
+            self.outbound = not self.outbound
+            self.target = None
+
         # if outbound and no target set, set target as the closest
         # capturable tile at least 1 tile away from your
         # territory's edge.
 
         if self.outbound and self.target is None and \
                 invader_target is None:
+            self.target = possible_target
+
             edges = [tile for tile in
                      world.util.get_friendly_territory_edges()]
             avoid = []
@@ -71,10 +73,13 @@ class PlayerAI:
             self.target = invader_target
         # else if inbound and no target set, set target as the closest friendly tile
         elif not self.outbound and self.target is None:
+            print("Heading Home!")
             self.target = world.util.get_closest_friendly_territory_from(friendly_unit.position, None)
 
         # set next move as the next point in the path to target
-        next_move = world.path.get_shortest_path(friendly_unit.position, self.target.position, friendly_unit.snake)[0]
+        next_move = world.path.get_shortest_path(friendly_unit.position,
+                                                 self.target.position,
+                                                 friendly_unit.snake)[0]
 
         # move!
         friendly_unit.move(next_move)
@@ -163,11 +168,11 @@ class PlayerAI:
             self.outbound = False
             return None
         # Else if sees enemy body, attack:
-        elif self._check_enemy_body(world, friendly_unit)[0]:
-            return self._check_enemy_body(world, friendly_unit)[1]
-        # Else, move one more tile:
-        else:
-            return self._get_neutral_path(world, friendly_unit)
+        # elif self._check_enemy_body(world, friendly_unit):
+        #     return self._check_enemy_body(world, friendly_unit)[1]
+        # # Else, move one more tile:
+        # else:
+        #     return self._get_neutral_path(world, friendly_unit)
 
     def _check_enemy_head(self, world, friendly_unit, enemy_units):
         """
@@ -183,11 +188,12 @@ class PlayerAI:
         for enemy in enemy_units:
             avoid = [i.snake for i
                      in enemy_units if i != enemy] + \
-                    friendly_unit.body
+                    [friendly_unit.body]
             if world.path.get_taxi_cab_distance(enemy.position,
                                                 friendly_unit.position) \
-                    == world.util.get_closest_friendly_territory_from(
-                    friendly_unit.position, avoid) + 4:
+                    == world.path.\
+                    get_taxi_cab_distance(friendly_unit.position, world.util.get_closest_friendly_territory_from(
+                    friendly_unit.position, avoid).position) + 4:
                 return True
                 # Return true if we find one enemy head entered our sight.
         return False
