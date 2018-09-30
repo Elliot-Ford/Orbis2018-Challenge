@@ -62,80 +62,101 @@ class PlayerAI:
         #     - the second index is the target position, which is also a Tuple
         else:
             if self.target is not None and friendly_unit.position == self.target:
-            # If there's a target and we reached the target.
-                # TODO: a) Expand case:
+                placeholder = 0
+                # If there's a target and we reached the target.
+                # TODO: a) Expand case: *
                     #     self.outbound, do not change
                     #     self.mission, do not change
                     #     self.target = None
-                # TODO: b) Invader or Flee case:
+                # TODO: b) Invader or Flee case: *
                     #     self.outbound = True
                     #     self.mission = False
                     #     self.target = None
-                # TODO: c) Attack case:
+                # TODO: c) Attack case: *
                     #     self.outbound = False
                     #     self.mission = False
                     #     self.target, updated as the cloest territory
+                if self.outbound and not self.mission:
+                    self.target = None
+                elif not self.outbound and not self.mission:
+                    self.target = self.get_friendly_territory_target(world, friendly_unit)
+                else:
+                    self.target = None
 
             if self.target is not None and friendly_unit.position != self.target:
-            # If there's a target and we havn't reached the target.
-            # we want to be wary of whether we need to flee.
-                # TODO: check enemy head to see if we need to overwrite our target and flee.
+                # If there's a target and we havn't reached the target.
+                # we want to be wary of whether we need to flee.
+                # TODO: check enemy head to see if we need to overwrite our target and flee. *
                     #     self.outbound = False
                     #     self.mission = False
                     #     self.target, updated as the cloest territory
                 # else just pass
+                if self.should_flee(world, friendly_unit):
+                    self.outbound = False
+                    self.mission = False
+                    self.target = self.get_friendly_territory_target(world, friendly_unit)
 
-            elif self.target is None:
-            # If target is None, then we want to check our vision.
-                # TODO: a) Flee case:
+            if self.target is None:
+                # If target is None, then we want to check our vision.
+                # TODO: a) Flee case: 2 *
                     #     self.outbound = False
                     #     self.mission = False
                     #     self.target = current target from vision
-                # TODO: b) Attack case:
+                # TODO: b) Attack case: 1 *
                     #     self.outbound = True
                     #     self.mission = True
                     #     self.target = current target from vision
-                # TODO: c) Expand case:
+                # TODO: c) Expand case: 0 *
                     #     self.outbound = True
                     #     self.mission = False
                     #     self.target = current target from vision
+                if possible_target[0] == 0:
+                    self.outbound = False
+                    self.mission = False
+                elif possible_target[0] == 1:
+                    self.outbound = True
+                    self.mission = True
+                else:
+                    self.outbound = False
+                    self.mission = False
+                self.target = possible_target[1]
 
 
         # TODO: Restructure the move function.
 
-        # if unit reaches the target point, reverse outbound boolean and
-        #  set target back to None
-        if self.target is not None and friendly_unit.position == self.target.position:
-            self.outbound = not self.outbound
-            self.target = None
-
-        if self.target is not None and self.outbound is False:
-            pass
-            # If the target is not None and we decide to flee back to our territory,
-            # we want to stick with our original target.
-
-        # if outbound and no target set, set target as the closest
-        # capturable tile at least 1 tile away from your
-        # territory's edge.
-
-        if self.outbound and self.target is None and \
-                invader_target is None:
-            self.target = possible_target
-
-            edges = [tile for tile in
-                     world.util.get_friendly_territory_edges()]
-            avoid = []
-            for edge in edges:
-                avoid += [pos for pos in world.get_neighbours(edge.position).values()]
-            self.target = world.util.get_closest_capturable_territory_from(friendly_unit.position, avoid)
-
-        elif self.outbound and self.target is None and \
-                invader_target is not None:
-            self.target = invader_target
-        # else if inbound and no target set, set target as the closest friendly tile
-        elif not self.outbound and self.target is None:
-            print("Heading Home!")
-            self.target = world.util.get_closest_friendly_territory_from(friendly_unit.position, None)
+        # # if unit reaches the target point, reverse outbound boolean and
+        # #  set target back to None
+        # if self.target is not None and friendly_unit.position == self.target.position:
+        #     self.outbound = not self.outbound
+        #     self.target = None
+        #
+        # if self.target is not None and self.outbound is False:
+        #     pass
+        #     # If the target is not None and we decide to flee back to our territory,
+        #     # we want to stick with our original target.
+        #
+        # # if outbound and no target set, set target as the closest
+        # # capturable tile at least 1 tile away from your
+        # # territory's edge.
+        #
+        # if self.outbound and self.target is None and \
+        #         invader_target is None:
+        #     self.target = possible_target
+        #
+        #     edges = [tile for tile in
+        #              world.util.get_friendly_territory_edges()]
+        #     avoid = []
+        #     for edge in edges:
+        #         avoid += [pos for pos in world.get_neighbours(edge.position).values()]
+        #     self.target = world.util.get_closest_capturable_territory_from(friendly_unit.position, avoid)
+        #
+        # elif self.outbound and self.target is None and \
+        #         invader_target is not None:
+        #     self.target = invader_target
+        # # else if inbound and no target set, set target as the closest friendly tile
+        # elif not self.outbound and self.target is None:
+        #     print("Heading Home!")
+        #     self.target = world.util.get_closest_friendly_territory_from(friendly_unit.position, None)
 
         # set next move as the next point in the path to target
         next_move = world.path.get_shortest_path(friendly_unit.position,
@@ -318,3 +339,44 @@ class PlayerAI:
         else:
             return back_up_position
             # Return the first position that's possible.
+
+
+    def get_friendly_territory_target(self, world, friendly_unit):
+        return world.util.get_closest_friendly_territory_from(
+            friendly_unit.position, None)
+
+
+    def get_enemy_body_target(self, world, friendly_unit, enemy_units):
+        avoid = friendly_unit.snake + [i.position for i in enemy_units]
+        enemy_body = world.util.get_closest_enemy_body_from(
+            friendly_unit.position, avoid)
+        enemy_head_to_body_dis = world.path. \
+            get_taxi_cab_distance(world.util.
+                                  get_closest_enemy_head_from(enemy_body,
+                                                              friendly_unit.
+                                                              position))
+        friendly_head_to_body_dis = world.path. \
+            get_taxi_cab_distance(friendly_unit.position, enemy_body)
+
+        if enemy_head_to_body_dis > friendly_head_to_body_dis:
+            return enemy_body
+        else:
+            return None
+
+
+    VISION_THRESHOLD = 5
+
+
+    def should_flee(self, world, friendly_unit):
+        closeset_enemy = world.util.get_closest_enemy_head_from(
+            friendly_unit.position).position
+        distance_from_enemy = world.path.get_taxi_cab_distance(
+            friendly_unit.position, closeset_enemy)
+        distance_from_home = world.path.get_taxi_cab_distance(
+            self.get_friendly_territory_target(world, friendly_unit).position,
+            friendly_unit.position)
+
+        if distance_from_enemy < distance_from_home + self.VISION_THRESHOLD:
+            return True
+        else:
+            return False
