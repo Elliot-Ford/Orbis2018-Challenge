@@ -354,7 +354,7 @@ class PlayerAI:
             return None
 
 
-    VISION_THRESHOLD = 4
+    VISION_THRESHOLD = 5
 
 
     def should_flee(self, world, friendly_unit):
