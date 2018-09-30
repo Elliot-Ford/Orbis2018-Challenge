@@ -52,11 +52,14 @@ class PlayerAI:
         if self.target is not\
                 None and \
                 friendly_unit.position == self.target.position:
+            # Reached the target
             if not self.outbound or world.is_edge(self.target.position):
+                # If inbound or we're at the edge, go outbound
                 self.outbound = not self.outbound
             self.target = None
 
         if self.should_flee(world, friendly_unit):
+            # Flee has the highest priority
             self.outbound = False
             self.target = None
 
@@ -66,17 +69,53 @@ class PlayerAI:
         # capturable tile at least 1 tile away from your
         # territory's edge.
         if self.outbound and self.target is None:
+            # Neutral expand case
+            # TODO: try to figure out this one
             edges = [tile for tile in world.util.get_friendly_territory_edges()]
             avoid = []
             for edge in edges:
                 avoid += [pos for pos in world.get_neighbours(edge.position).values()]
-            self.target = world.util.get_closest_capturable_territory_from(friendly_unit.position, avoid)
+
+            neighbours = []
+            target = None
+            target_distance = 0
+            for i in range(3):
+                temp_target = world.util.get_closest_capturable_territory_from(friendly_unit.position, avoid)
+                neighbours.append(temp_target)
+                avoid.append(temp_target)
+
+            for tile in neighbours:
+                distance = world.path.get_taxi_cab_distance(friendly_unit.position, tile.position)
+                if target is None:
+                    target = tile
+                    target_distance = distance
+                else:
+                    if distance <= 5 and target_distance <= 5:
+                        if target_distance >= distance:
+                            pass
+                        else:
+                            target = tile
+                    elif distance <= 5 < target_distance:
+                        target = tile
+                    elif target_distance <= 5 < distance:
+                        pass
+                    else:
+                        if target_distance >= distance:
+                            target = tile
+                        else:
+                            pass
+
+            print(str(target))
+            print(str(target_distance))
+            self.target = target
 
         elif self.outbound and self.target is None and \
                 invader_target is not None:
+            # Invader case
             self.target = invader_target
         # else if inbound and no target set, set target as the closest friendly tile
         elif not self.outbound and self.target is None:
+            # just to catch the target being None error
             self.target = world.util.get_closest_friendly_territory_from(friendly_unit.position, None)
         print(self.target.position)
         print(friendly_unit.position)
