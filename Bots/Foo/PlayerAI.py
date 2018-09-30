@@ -4,6 +4,7 @@ from PythonClientAPI.game.Enums import Team
 from PythonClientAPI.game.World import World
 from PythonClientAPI.game.TileUtils import TileUtils
 
+
 class PlayerAI:
 
     def __init__(self):
@@ -71,7 +72,6 @@ class PlayerAI:
         # else if inbound and no target set, set target as the closest friendly tile
         elif not self.outbound and self.target is None:
             self.target = world.util.get_closest_friendly_territory_from(friendly_unit.position, None)
-
 
         # set next move as the next point in the path to target
         next_move = world.path.get_shortest_path(friendly_unit.position, self.target.position, friendly_unit.snake)[0]
@@ -169,7 +169,6 @@ class PlayerAI:
         else:
             return self._get_neutral_path(world, friendly_unit)
 
-
     def _check_enemy_head(self, world, friendly_unit, enemy_units):
         """
             This is a helper function for _vision_decision to check if there is an enemy head in our sight
@@ -194,7 +193,6 @@ class PlayerAI:
         return False
         # Return false if we find no enemy head within our sight.
 
-
     def _check_enemy_body(self, world, friendly_unit):
         """
             This is a helper function for _vision_decision to check if there is an enemy body within
@@ -203,29 +201,16 @@ class PlayerAI:
         @type world: World object
         @type friendly_unit: FriendlyUnit object
         @rtype: Tuple
-            - the target_status determines if there is a attackable enemy body
-            - the target position is in the second index
+            - the target position
         """
-        target_status = False
-        target = dict()
-        for friendly_body in friendly_unit.body:
-            enemy_body = world.util.get_closest_enemy_body_from(friendly_body, friendly_unit.snake)
-            distance = world.path.get_taxi_cab_distance(enemy_body.position, friendly_unit.position)
-            if distance <= 5:
-                target_status = True
-                target[distance] = tuple(enemy_body)
-
-        if target_status:
-            list(target.keys()).sort()
-            if isinstance(target[list(target.keys())[0]], tuple):
-                return target_status, target[list(target.keys())[0]]
-            else:
-                return target_status, target[list(target.keys())[0]][0]
-                # Return true if we find one enemy body that's attackable within our safety threshold.
+        enemy_body = world.util.get_closest_enemy_body_from(friendly_unit.position, friendly_unit.snake)
+        distance = world.path.get_taxi_cab_distance(enemy_body.position, friendly_unit.position)
+        if distance <= 5:
+            return enemy_body.position
+            # Return true if we find one enemy body that's attackable within our safety threshold.
         else:
-            return target_status, None
+            return None
             # Return false if we do not find any enemy body that's attackable within our safety threshold.
-
 
     def _get_neutral_path(self, world, friendly_unit):
         """
