@@ -12,6 +12,7 @@ class PlayerAI:
         self.turn_count = 0             # game turn count
         self.target = None              # target to send unit to!
         self.outbound = True            # is the unit leaving, or returning?
+        self.mission = False            # is the unit on the mission of reaching a certain target?
 
     def do_move(self, world, friendly_unit, enemy_units):
         '''
@@ -39,6 +40,7 @@ class PlayerAI:
             print("Turn {0}: Disabled - skipping move.".format(str(self.turn_count)))
             self.target = None
             self.outbound = True
+            self.mission = False
             return
 
         invader_target = \
@@ -47,11 +49,70 @@ class PlayerAI:
         possible_target = \
             self._vision_decision(world, friendly_unit, enemy_units)
 
+        if invader_target is not None:
+        # If there's an invader
+            self.target = invader_target
+            self.outbound = False
+            self.mission = True
+            # If there's an invader and we deem it necessary to attack, then this is the highest priority,
+            # and this will overwrite previous target instruction.
+
+        # TODO: take the possible_target as a Tuple:
+        #     - the first index is 0(expand), 1(attack) and 2(flee)
+        #     - the second index is the target position, which is also a Tuple
+        else:
+            if self.target is not None and friendly_unit.position == self.target:
+            # If there's a target and we reached the target.
+                # TODO: a) Expand case:
+                    #     self.outbound, do not change
+                    #     self.mission, do not change
+                    #     self.target = None
+                # TODO: b) Invader or Flee case:
+                    #     self.outbound = True
+                    #     self.mission = False
+                    #     self.target = None
+                # TODO: c) Attack case:
+                    #     self.outbound = False
+                    #     self.mission = False
+                    #     self.target, updated as the cloest territory
+
+            if self.target is not None and friendly_unit.position != self.target:
+            # If there's a target and we havn't reached the target.
+            # we want to be wary of whether we need to flee.
+                # TODO: check enemy head to see if we need to overwrite our target and flee.
+                    #     self.outbound = False
+                    #     self.mission = False
+                    #     self.target, updated as the cloest territory
+                # else just pass
+
+            elif self.target is None:
+            # If target is None, then we want to check our vision.
+                # TODO: a) Flee case:
+                    #     self.outbound = False
+                    #     self.mission = False
+                    #     self.target = current target from vision
+                # TODO: b) Attack case:
+                    #     self.outbound = True
+                    #     self.mission = True
+                    #     self.target = current target from vision
+                # TODO: c) Expand case:
+                    #     self.outbound = True
+                    #     self.mission = False
+                    #     self.target = current target from vision
+
+
+        # TODO: Restructure the move function.
+
         # if unit reaches the target point, reverse outbound boolean and
         #  set target back to None
         if self.target is not None and friendly_unit.position == self.target.position:
             self.outbound = not self.outbound
             self.target = None
+
+        if self.target is not None and self.outbound is False:
+            pass
+            # If the target is not None and we decide to flee back to our territory,
+            # we want to stick with our original target.
 
         # if outbound and no target set, set target as the closest
         # capturable tile at least 1 tile away from your
@@ -69,7 +130,7 @@ class PlayerAI:
             self.target = world.util.get_closest_capturable_territory_from(friendly_unit.position, avoid)
 
         elif self.outbound and self.target is None and \
-                invader_target is not None :
+                invader_target is not None:
             self.target = invader_target
         # else if inbound and no target set, set target as the closest friendly tile
         elif not self.outbound and self.target is None:
