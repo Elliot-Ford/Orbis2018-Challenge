@@ -44,7 +44,7 @@ class PlayerAI:
         #  set target back to None
         if self.target is not None and friendly_unit.position == self.target.position:
             self.outbound = not self.outbound
-            self.target = None
+            return None
 
         # if outbound and no target set, set target as the closest
         # capturable tile at least 1 tile away from your
